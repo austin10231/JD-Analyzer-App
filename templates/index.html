@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>JD Analyzer</title>
   <style>
     body {
@@ -11,86 +10,77 @@
       margin: 0;
       padding: 0;
     }
-
     .container {
-      max-width: 980px;
-      margin: 60px auto;
+      max-width: 920px;
+      margin: 80px auto;
       background: #fff;
-      padding: 40px;
-      border-radius: 14px;
+      padding: 48px;
+      border-radius: 16px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     }
-
     h1 {
       margin: 0;
       font-size: 34px;
       text-align: center;
       letter-spacing: 0.2px;
     }
-
     .subtitle {
       text-align: center;
-      color: #666;
+      color: #6b7280;
       margin-top: 10px;
-      margin-bottom: 26px;
-      font-size: 16px;
+      margin-bottom: 22px;
     }
 
-    .mode-row {
-      display: flex;
-      gap: 18px;
-      align-items: center;
-      justify-content: center;
-      margin: 14px 0 18px;
-      color: #333;
-      font-size: 15px;
+    .mode-row{
+      display:flex;
+      justify-content:center;
+      gap:18px;
+      margin: 8px 0 18px;
+      color:#111827;
+      font-size:14px;
+    }
+    .mode-row label { cursor:pointer; }
+
+    .panel {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px;
+      background: #fbfdff;
     }
 
-    .mode-row label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 12px;
-      align-items: stretch;
-      margin-top: 10px;
-    }
-
-    input[type="text"] {
-      flex: 1;
+    input[type="text"]{
+      width: 100%;
+      box-sizing: border-box;
       padding: 14px 16px;
       font-size: 15px;
+      border: 1px solid #d1d5db;
       border-radius: 10px;
-      border: 1px solid #d0d7de;
       outline: none;
     }
-    input[type="text"]:focus {
+    input[type="text"]:focus, textarea:focus {
       border-color: #4f46e5;
       box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
     }
-
-    textarea {
+    textarea{
       width: 100%;
-      min-height: 220px;
-      resize: vertical;
+      min-height: 170px;
+      box-sizing: border-box;
       padding: 14px 16px;
       font-size: 14px;
-      line-height: 1.5;
+      border: 1px solid #d1d5db;
       border-radius: 10px;
-      border: 1px solid #d0d7de;
       outline: none;
-      margin-top: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      resize: vertical;
+      line-height: 1.5;
       white-space: pre-wrap;
     }
-    textarea:focus {
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+
+    .actions {
+      display:flex;
+      justify-content:flex-start;
+      gap: 12px;
+      margin-top: 14px;
+      align-items:center;
     }
 
     button {
@@ -98,185 +88,147 @@
       color: #fff;
       border: none;
       border-radius: 10px;
-      padding: 0 20px;
+      padding: 11px 18px;
       font-size: 15px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      white-space: nowrap;
-      min-height: 46px;
     }
     button:hover { background: #4338ca; }
-    button:disabled { opacity: 0.65; cursor: not-allowed; }
-
     .hint {
-      margin-top: 10px;
-      color: #666;
+      color: #6b7280;
       font-size: 13px;
     }
 
     .result-box {
-      margin-top: 34px;
+      margin-top: 30px;
     }
-
     .result-title {
       font-weight: 700;
       font-size: 20px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
-
     .status {
-      margin-top: 6px;
-      font-weight: 600;
-      color: #111827;
+      margin-top: 4px;
+      font-size: 14px;
+      color: #6b7280;
     }
-    .status.loading { color: #4f46e5; }
-    .status.error { color: #b91c1c; }
-    .status.ok { color: #065f46; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-      margin-top: 14px;
-    }
+    .status.ok { color: #065f46; font-weight: 600; }
+    .status.err { color: #b91c1c; font-weight: 600; }
 
     .card {
       background: #f9fafb;
       border: 1px solid #eef2f7;
       border-radius: 12px;
       padding: 18px;
+      margin-top: 14px;
     }
-
     .card h3 {
-      margin: 0 0 10px 0;
+      margin: 0 0 10px;
       font-size: 16px;
     }
 
-    .kv p {
-      margin: 8px 0;
-      font-size: 14px;
-    }
+    .kv p { margin: 6px 0; }
+    .kv strong { color: #111827; }
 
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
+    .tags{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
     }
-
-    .tag {
-      background: #e0e7ff;
-      color: #3730a3;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 13px;
+    .tag{
+      background:#e0e7ff;
+      color:#3730a3;
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:13px;
       border: 1px solid rgba(55,48,163,0.12);
     }
 
+    /* ✅ Responsibilities换行关键：不要nowrap，允许断词 */
     ul.clean {
-      margin: 8px 0 0 18px;
-      padding: 0;
-      color: #111827;
-      font-size: 14px;
-      line-height: 1.55;
+      margin: 8px 0 0;
+      padding-left: 18px;
     }
-
-    pre {
-      background: #0f172a;
-      color: #e5e7eb;
-      padding: 14px;
-      border-radius: 12px;
-      overflow-x: auto;
-      font-size: 12px;
-      line-height: 1.5;
-      margin: 0;
-    }
-    
-    #responsibilities li {
+    ul.clean li{
+      margin: 8px 0;
       white-space: normal;
       overflow-wrap: anywhere;
       word-break: break-word;
-      line-height: 1.5;
-    }
-    .clean{
-      padding-left: 18px;   /* 让 bullet 看起来正常 */
-    }
-    .clean li{
-      margin: 6px 0;
+      line-height: 1.55;
     }
 
+    /* 让页面更像你截图那种清爽布局 */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
 
-
-    .hide { display: none; }
+    /* 隐藏/显示 */
+    .hidden { display:none; }
   </style>
 </head>
 
 <body>
   <div class="container">
     <h1>Job Description Analyzer</h1>
-    <div class="subtitle">Analyze via URL (best-effort) or paste JD text directly (recommended)</div>
+    <div class="subtitle">
+      Analyze via URL (best-effort) or paste JD text directly (recommended)
+    </div>
 
-    <form id="jobForm" action="javascript:void(0);">
-      <div class="mode-row">
-        <label><input type="radio" name="mode_radio" value="url" /> URL</label>
-        <label><input type="radio" name="mode_radio" value="text" checked /> Text</label>
-      </div>
+    <div class="mode-row">
+      <label><input type="radio" name="mode" value="url" checked> URL</label>
+      <label><input type="radio" name="mode" value="text"> Text</label>
+    </div>
 
-      <input type="hidden" name="mode" id="mode" value="text" />
-
-      <!-- URL mode -->
-      <div id="urlBlock" class="hide">
-        <div class="input-group">
+    <div class="panel">
+      <form id="jobForm" action="javascript:void(0);">
+        <div id="urlBox">
           <input
+            id="job_url"
             type="text"
             name="job_url"
-            id="job_url"
-            placeholder="Paste a job posting URL (Greenhouse / company site works best)"
+            placeholder="https://job-boards.greenhouse.io/...  (best-effort)"
           />
-          <button type="submit" id="analyzeBtnUrl">🔍 Analyze</button>
         </div>
-        <div class="hint">
-          Note: Some sites (e.g., LinkedIn) may block automated access. If URL fails, use Text mode.
-        </div>
-      </div>
 
-      <!-- Text mode -->
-      <div id="textBlock">
-        <textarea
-          name="jd_text"
-          id="jd_text"
-          placeholder="Paste the full JD text here..."
-        ></textarea>
-        <div class="input-group" style="margin-top: 12px;">
-          <button type="submit" id="analyzeBtnText">🔍 Analyze</button>
+        <div id="textBox" class="hidden" style="margin-top:12px;">
+          <textarea
+            id="jd_text"
+            name="jd_text"
+            placeholder="Paste the full job description text here..."
+          ></textarea>
         </div>
-        <div class="hint">
-          Text mode is the most reliable and will produce the most complete structured result.
+
+        <div class="actions">
+          <button type="submit">🔎 Analyze</button>
+          <div class="hint">Tip: Text mode is the most reliable and will produce the most complete structured result.</div>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
 
     <div class="result-box">
       <div class="result-title">Analysis Result</div>
-      <div id="status" class="status">Ready.</div>
+      <div id="status" class="status">Idle.</div>
 
-      <div id="resultGrid" class="grid hide">
+      <div id="result" class="grid hidden">
+
         <div class="card">
           <h3>Job Overview</h3>
           <div class="kv">
-            <p><strong>Company:</strong> <span id="company">—</span></p>
-            <p><strong>Job Title:</strong> <span id="job_title">—</span></p>
-            <p><strong>Seniority:</strong> <span id="seniority">—</span></p>
+            <p><strong>Company:</strong> <span id="company"></span></p>
+            <p><strong>Job Title:</strong> <span id="job_title"></span></p>
+            <p><strong>Seniority:</strong> <span id="seniority"></span></p>
           </div>
         </div>
 
         <div class="card">
           <h3>Education</h3>
           <div class="kv">
-            <p><strong>Required:</strong> <span id="edu_required">—</span></p>
-            <p><strong>Preferred:</strong> <span id="edu_preferred">—</span></p>
+            <p><strong>Required:</strong> <span id="edu_required"></span></p>
+            <p><strong>Preferred:</strong> <span id="edu_preferred"></span></p>
           </div>
         </div>
 
@@ -302,206 +254,173 @@
 
         <div class="card">
           <h3>Skill Buckets</h3>
-          <div class="kv" id="skill_buckets"></div>
+          <div id="skill_buckets"></div>
         </div>
+
       </div>
     </div>
   </div>
 
   <script>
-    const modeHidden = document.getElementById("mode");
-    const urlBlock = document.getElementById("urlBlock");
-    const textBlock = document.getElementById("textBlock");
     const statusEl = document.getElementById("status");
-    const resultGrid = document.getElementById("resultGrid");
+    const resultEl = document.getElementById("result");
 
-    const radios = document.querySelectorAll('input[name="mode_radio"]');
-    radios.forEach(r => r.addEventListener("change", () => {
-      const mode = document.querySelector('input[name="mode_radio"]:checked').value;
-      modeHidden.value = mode;
+    const urlBox = document.getElementById("urlBox");
+    const textBox = document.getElementById("textBox");
 
-      if (mode === "url") {
-        urlBlock.classList.remove("hide");
-        textBlock.classList.add("hide");
-      } else {
-        textBlock.classList.remove("hide");
-        urlBlock.classList.add("hide");
-      }
+    // Skill bucket label map（你要的大写/更好看）
+    const BUCKET_LABEL = {
+      ai_ml: "AI/ML",
+      cloud: "CLOUD",
+      data_systems: "DATA SYSTEMS",
+      frameworks: "FRAMEWORKS",
+      languages: "LANGUAGES",
+    };
 
-      // reset status/results UI when switching
-      statusEl.className = "status";
-      statusEl.textContent = "Ready.";
-      resultGrid.classList.add("hide");
-    }));
-
-    function setStatus(text, type) {
-      statusEl.textContent = text;
+    function setStatus(msg, type="") {
+      statusEl.textContent = msg;
       statusEl.className = "status " + (type || "");
     }
 
-    function clearChildren(el) {
-      while (el.firstChild) el.removeChild(el.firstChild);
+    function showResult(show) {
+      resultEl.classList.toggle("hidden", !show);
     }
 
-    function renderTags(el, items) {
-      clearChildren(el);
-      if (!items || items.length === 0) {
-        const span = document.createElement("span");
-        span.textContent = "None";
-        el.appendChild(span);
+    function renderTags(container, arr) {
+      container.innerHTML = "";
+      const list = Array.isArray(arr) ? arr : [];
+      if (!list.length) {
+        container.innerHTML = "<span style='color:#6b7280;'>None</span>";
         return;
       }
-      items.forEach(x => {
-        const t = document.createElement("span");
-        t.className = "tag";
-        t.textContent = x;
-        el.appendChild(t);
+      list.forEach(x => {
+        const s = document.createElement("span");
+        s.className = "tag";
+        s.textContent = x;
+        container.appendChild(s);
       });
     }
 
-    function renderList(el, items) {
-      clearChildren(el);
-      if (!items || items.length === 0) {
+    function renderList(ul, arr) {
+      ul.innerHTML = "";
+      const list = Array.isArray(arr) ? arr : [];
+      if (!list.length) {
         const li = document.createElement("li");
         li.textContent = "None";
-        el.appendChild(li);
+        ul.appendChild(li);
         return;
       }
-      items.forEach(x => {
+      list.forEach(x => {
         const li = document.createElement("li");
         li.textContent = x;
-        el.appendChild(li);
+        ul.appendChild(li);
       });
     }
 
-    function textOrDash(v) {
-      if (v === null || v === undefined) return "—";
-      const s = String(v).trim();
-      return s ? s : "—";
+    function textOrNone(x) {
+      if (Array.isArray(x)) return x.length ? x.join(", ") : "None";
+      if (typeof x === "string") return x.trim() ? x : "None";
+      if (x === null || x === undefined) return "None";
+      return String(x);
     }
 
-    // 兼容：URL pipeline / Text pipeline 的不同字段名
-    function normalizeResult(data) {
-      // Text analyzer schema:
-      // company, job_title, seniority, education{required,preferred}, fields, responsibilities,
-      // required_skills, preferred_skills, skill_buckets
-      //
-      // URL analyzer schema（你之前run_from_url的）：
-      // job_title, company, seniority, degree_requirement, fields, required_skills, preferred_skills
-      const out = { ...data };
+    function safeGet(obj, path, fallback) {
+      try {
+        return path.split(".").reduce((acc, k) => acc[k], obj) ?? fallback;
+      } catch {
+        return fallback;
+      }
+    }
 
-      // education 兜底
-      if (!out.education) {
-        const deg = out.degree_requirement || out.degree || [];
-        const required = Array.isArray(deg) ? deg : [deg].filter(Boolean);
-        out.education = { required, preferred: [] };
-      } else {
-        out.education.required = out.education.required || [];
-        out.education.preferred = out.education.preferred || [];
+    function renderBuckets(container, bucketsObj) {
+      container.innerHTML = "";
+      const b = (bucketsObj && typeof bucketsObj === "object") ? bucketsObj : {};
+      const keys = Object.keys(b);
+      if (!keys.length) {
+        container.innerHTML = "<div style='color:#6b7280;'>None</div>";
+        return;
       }
 
-      out.fields = out.fields || [];
-      out.responsibilities = out.responsibilities || [];
+      keys.forEach(k => {
+        const row = document.createElement("div");
+        row.style.margin = "6px 0";
 
-      out.required_skills = out.required_skills || [];
-      out.preferred_skills = out.preferred_skills || [];
+        const label = document.createElement("strong");
+        label.textContent = (BUCKET_LABEL[k] || k.toUpperCase().replaceAll("_"," ")) + ": ";
+        row.appendChild(label);
 
-      out.skill_buckets = out.skill_buckets || {};
+        const v = b[k];
+        const text = Array.isArray(v) ? (v.length ? v.join(", ") : "None") : (v || "None");
+        const span = document.createElement("span");
+        span.textContent = text;
+        row.appendChild(span);
 
-      out.company = out.company || "Unknown";
-      out.job_title = out.job_title || out.job_title || "Unknown";
-      out.seniority = out.seniority || "Unknown";
-      return out;
+        container.appendChild(row);
+      });
     }
 
-    function renderResult(data) {
-      const d = normalizeResult(data);
+    // 切换URL/Text
+    document.querySelectorAll("input[name='mode']").forEach(r => {
+      r.addEventListener("change", () => {
+        const mode = document.querySelector("input[name='mode']:checked").value;
+        if (mode === "url") {
+          urlBox.classList.remove("hidden");
+          textBox.classList.add("hidden");
+        } else {
+          urlBox.classList.add("hidden");
+          textBox.classList.remove("hidden");
+        }
+        showResult(false);
+        setStatus("Idle.");
+      });
+    });
 
-      document.getElementById("company").textContent = textOrDash(d.company);
-      document.getElementById("job_title").textContent = textOrDash(d.job_title);
-      document.getElementById("seniority").textContent = textOrDash(d.seniority);
-
-      document.getElementById("edu_required").textContent =
-        d.education.required.length ? d.education.required.join(", ") : "None";
-      document.getElementById("edu_preferred").textContent =
-        d.education.preferred.length ? d.education.preferred.join(", ") : "None";
-
-      renderTags(document.getElementById("fields"), d.fields);
-      renderList(document.getElementById("responsibilities"), d.responsibilities);
-      renderTags(document.getElementById("required_skills"), d.required_skills);
-      renderTags(document.getElementById("preferred_skills"), d.preferred_skills);
-
-      // buckets
-      const bucketsEl = document.getElementById("skill_buckets");
-      bucketsEl.innerHTML = "";
-      const buckets = d.skill_buckets || {};
-      const keys = Object.keys(buckets);
-      if (keys.length === 0) {
-        bucketsEl.innerHTML = "<p>None</p>";
-      } else {
-        keys.forEach(k => {
-          const arr = buckets[k] || [];
-          const p = document.createElement("p");
-          const label = document.createElement("strong");
-          const LABELS = {
-            ai_ml: "AI/ML",
-            cloud: "CLOUD",
-            data_systems: "DATA SYSTEMS",
-            frameworks: "FRAMEWORKS",
-            languages: "LANGUAGES"
-          };
-          label.textContent = (LABELS[k] || k.toUpperCase()) + ": ";
-
-          p.appendChild(label);
-          p.appendChild(document.createTextNode(arr.length ? arr.join(", ") : "None"));
-          bucketsEl.appendChild(p);
-        });
-      }
-
-      resultGrid.classList.remove("hide");
-    }
-
-    document.getElementById("jobForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const mode = modeHidden.value;
+    // 提交
+    document.getElementById("jobForm").addEventListener("submit", async () => {
+      const mode = document.querySelector("input[name='mode']:checked").value;
+      const jobUrl = document.getElementById("job_url").value.trim();
+      const jdText = document.getElementById("jd_text").value.trim();
 
       const fd = new FormData();
       fd.append("mode", mode);
+      if (mode === "url") fd.append("job_url", jobUrl);
+      else fd.append("jd_text", jdText);
 
-      if (mode === "url") {
-        const url = document.getElementById("job_url").value.trim();
-        if (!url) {
-          setStatus("Please paste a URL first.", "error");
-          return;
-        }
-        fd.append("job_url", url);
-      } else {
-        const text = document.getElementById("jd_text").value.trim();
-        if (!text) {
-          setStatus("Please paste JD text first.", "error");
-          return;
-        }
-        fd.append("jd_text", text);
-      }
-
-      setStatus("Analyzing...", "loading");
-      resultGrid.classList.add("hide");
+      setStatus("Analyzing...", "");
+      showResult(false);
 
       try {
         const res = await fetch("/analyze", { method: "POST", body: fd });
         const data = await res.json();
 
-        if (!res.ok) {
-          const msg = data && data.error ? data.error : "Error analyzing job description.";
-          setStatus(msg, "error");
+        if (!res.ok || data.error) {
+          setStatus(data.error || "Error analyzing job description.", "err");
           return;
         }
 
         setStatus("Done.", "ok");
-        renderResult(data);
-      } catch (err) {
-        setStatus("Network/Server error. Check terminal logs.", "error");
+        showResult(true);
+
+        // overview
+        document.getElementById("company").textContent = textOrNone(data.company);
+        document.getElementById("job_title").textContent = textOrNone(data.job_title);
+        document.getElementById("seniority").textContent = textOrNone(data.seniority);
+
+        // education
+        document.getElementById("edu_required").textContent = textOrNone(safeGet(data, "education.required", []));
+        document.getElementById("edu_preferred").textContent = textOrNone(safeGet(data, "education.preferred", []));
+
+        // fields/skills/responsibilities
+        renderTags(document.getElementById("fields"), data.fields);
+        renderList(document.getElementById("responsibilities"), data.responsibilities);
+        renderTags(document.getElementById("required_skills"), data.required_skills);
+        renderTags(document.getElementById("preferred_skills"), data.preferred_skills);
+
+        // buckets
+        renderBuckets(document.getElementById("skill_buckets"), data.skill_buckets);
+
+      } catch (e) {
+        setStatus("Error analyzing job description.", "err");
       }
     });
   </script>
