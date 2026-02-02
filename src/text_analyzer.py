@@ -18,39 +18,45 @@ def _clean_company_candidate(s: str) -> str:
     return s
 
 def extract_company_from_text(jd_text: str) -> str:
-    text = jd_text or ""
-    lines = [re.sub(r"\s+", " ", x).strip() for x in text.splitlines()]
-    lines = [x for x in lines if x]
+    text = _normalize(jd_text)
 
-    # 1) "at IBM Research"
-    m = re.search(r"\bat\s+([A-Z][A-Za-z0-9&.\- ]{1,60})\b", text)
+    # 常见标题词，避免被误判为公司
+    BAD_HEADINGS = {
+        "about the job", "introduction", "your role", "your role and responsibilities",
+        "responsibilities", "what you'll do", "what you will do", "requirements",
+        "preferred qualifications", "preferred", "education"
+    }
+
+    # 1) At <Company>,
+    m = re.search(r"\bAt\s+([A-Z][A-Za-z0-9&.\-]+(?:\s+[A-Z][A-Za-z0-9&.\-]+){0,4})\s*,", text)
     if m:
-        cand = _clean_company_candidate(m.group(1))
-        if cand and cand.lower() not in _STOP_TITLES:
-            return cand
+        c = m.group(1).strip()
+        if c.lower() not in BAD_HEADINGS:
+            return c
 
-    # 2) 开头句："IBM Research takes ..."
-    first_chunk = " ".join(lines[:3])
-    m2 = re.match(r"^([A-Z][A-Za-z0-9&.\- ]{1,40})\s+(takes|is|are|was|were|has|have)\b", first_chunk)
-    if m2:
-        cand = _clean_company_candidate(m2.group(1))
-        if cand and cand.lower() not in _STOP_TITLES:
-            return cand
+    # 2) <Company> Research / <Company> Labs / <Company> AI
+    m = re.search(r"\b([A-Z][A-Za-z0-9&.\-]+)\s+(Research|Labs|Lab|AI|Data|Engineering|Semiconductor)\b", text)
+    if m:
+        c = m.group(1).strip()
+        if c.lower() not in BAD_HEADINGS:
+            return c
 
-    # 3) 回退：前 20 行里找短的“像公司名”的行
-    for x in lines[:20]:
-        xl = x.lower().strip(":")
-        if xl in _STOP_TITLES:
-            continue
-        if any(xl.startswith(t) for t in _STOP_TITLES):
-            continue
-        if "." in x:
-            continue
-        cand = _clean_company_candidate(x)
-        if cand:
-            return cand
+    # 3) fallback：从前 15 行里找“像公司名”的行（且过滤标题）
+    lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
+    head = lines[:15]
 
-    return "Unknown"
+    for ln in head:
+        low = ln.lower().strip(": -")
+        if low in BAD_HEADINGS:
+            continue
+        # 很短的一行、Title Case，可能是公司/部门名
+        if 2 <= len(ln) <= 40 and re.match(r"^[A-Z][A-Za-z0-9&.\- ]+$", ln):
+            # 避免 "About the job Netflix" 这种组合
+            ln2 = re.sub(r"(?i)^about the job\s+", "", ln).strip()
+            if ln2 and ln2.lower() not in BAD_HEADINGS:
+                return ln2
+
+    return ""
 
 
 # -----------------------------
@@ -76,9 +82,29 @@ DEGREE_WORDS = [
 # -----------------------------
 # 2) 基础清洗
 # -----------------------------
+import re
+from typing import Dict, List, Tuple
+
 def _normalize(text: str) -> str:
-    text = text.replace("\r", "\n")
+    if not text:
+        return ""
+    # unify newlines
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+    # normalize fancy quotes
+    text = (text
+        .replace("’", "'")
+        .replace("“", '"').replace("”", '"')
+        .replace("–", "-").replace("—", "-")
+    )
+
+    # normalize bullets
+    text = text.replace("•", "- ")
+
+    # collapse weird spaces
+    text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
+
     return text.strip()
 
 def _lower(text: str) -> str:
@@ -103,32 +129,61 @@ SECTION_HEADERS = [
     "responsibilities",
 ]
 
-def _detect_sections(text: str) -> Dict[str, str]:
+def _detect_sections(jd_text: str) -> Dict[str, str]:
     """
-    用粗粒度方式把文本按常见 heading 切开。
-    找不到也不报错。
+    Return blocks of text by section key.
     """
-    raw = _normalize(text)
-    low = _lower(raw)
+    text = _normalize(jd_text)
+    lines = [ln.strip() for ln in text.split("\n")]
 
-    # 记录每个header出现的位置
-    hits: List[Tuple[int, str]] = []
-    for h in SECTION_HEADERS:
-        idx = low.find(h)
-        if idx != -1:
-            hits.append((idx, h))
+    # 标题模式：尽量覆盖常见JD写法（大小写不敏感）
+    SECTION_PATTERNS = {
+        "responsibilities": re.compile(
+            r"^(responsibilities|what (you'?ll|you will) do|what you'?ll work on|your role( and responsibilities)?|role and responsibilities|in this role(,)? you will)\s*[:\-]?$",
+            re.IGNORECASE
+        ),
+        "requirements": re.compile(
+            r"^(requirements|required (skills|experience|expertise)|required technical|required technical and professional expertise|basic qualifications)\s*[:\-]?$",
+            re.IGNORECASE
+        ),
+        "preferred": re.compile(
+            r"^(preferred (skills|experience|expertise)|preferred technical|preferred technical and professional experience|preferred qualifications)\s*[:\-]?$",
+            re.IGNORECASE
+        ),
+        "education": re.compile(
+            r"^(education|preferred education|minimum education|qualification|qualifications)\s*[:\-]?$",
+            re.IGNORECASE
+        ),
+    }
 
-    hits.sort(key=lambda x: x[0])
-    if not hits:
-        return {"full": raw}
+    # 找到每个 section 的起点行号
+    starts: List[Tuple[int, str]] = []
+    for i, ln in enumerate(lines):
+        if not ln:
+            continue
+        # “看起来像标题”的行：短、没有句号结尾、词数不太多
+        if len(ln) <= 80:
+            for key, pat in SECTION_PATTERNS.items():
+                if pat.match(ln):
+                    starts.append((i, key))
+                    break
 
-    sections: Dict[str, str] = {}
-    for i, (pos, h) in enumerate(hits):
-        end = hits[i + 1][0] if i + 1 < len(hits) else len(raw)
-        chunk = raw[pos:end].strip()
-        sections[h] = chunk
-    sections["full"] = raw
-    return sections
+    # 没检测到任何标题，就返回整段给 requirements/responsibilities 备用
+    if not starts:
+        return {"__all__": "\n".join(lines).strip()}
+
+    # 根据 starts 切块
+    starts.sort(key=lambda x: x[0])
+    blocks: Dict[str, str] = {}
+    for idx, (start_i, key) in enumerate(starts):
+        end_i = starts[idx + 1][0] if idx + 1 < len(starts) else len(lines)
+        block = "\n".join(lines[start_i + 1 : end_i]).strip()
+        # 同一个key出现多次就拼起来
+        if block:
+            blocks[key] = (blocks.get(key, "") + "\n" + block).strip()
+
+    return blocks
+
 
 # -----------------------------
 # 4) 抽取：公司 / 职位名 / 级别
@@ -342,40 +397,52 @@ def _extract_skills(text: str, sections: Dict[str, str]) -> Dict[str, List[str]]
 # 7) 责任/工作内容（bullet抽取）
 # -----------------------------
 def _extract_responsibilities(sections: Dict[str, str]) -> List[str]:
-    seg = (
-        sections.get("your role and responsibilities", "")
-        + "\n"
-        + (sections.get("topics include but are not limited to", "") or sections.get("topics include", ""))
-    ).strip()
+    """
+    Extract bullet responsibilities.
+    """
+    # 1) 优先用 responsibilities block
+    block = sections.get("responsibilities", "").strip()
 
-    if not seg:
+    # 2) 如果没有，就用全文里“你将会…”那段做兜底
+    if not block:
+        block = sections.get("__all__", "")
+
+    if not block:
         return []
 
-    lines = _split_lines(seg)
+    lines = [ln.strip() for ln in block.split("\n") if ln.strip()]
 
-    bullets = []
+    bullets: List[str] = []
+    bullet_pat = re.compile(r"^\s*(?:[-*]|(\d+)[\).\]])\s+(.*)$")
+
     for ln in lines:
-        # 跳过标题行
-        low = ln.lower()
-        if low in SECTION_HEADERS or low.startswith("your role") or low.startswith("topics include"):
-            continue
+        m = bullet_pat.match(ln)
+        if m:
+            item = m.group(2).strip()
+            if item:
+                bullets.append(item)
 
-        # 常见 bullet / 列表
-        if ln.startswith(("-", "•", "*")):
-            bullets.append(ln.lstrip("-•* ").strip())
-        else:
-            # 对这种“Using..., Exploring..., Improving...”也当 bullet
-            if re.match(r"^(Using|Exploring|Improving|Building)\b", ln):
-                bullets.append(ln.strip())
+    # 如果没有 bullet，就从句子里抽一些 “will/you will” 句子作为责任描述
+    if not bullets:
+        # 简单句子切分
+        sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", block).strip())
+        for s in sentences:
+            s_clean = s.strip()
+            if not s_clean:
+                continue
+            if re.search(r"\byou will\b|\byou'll\b|\bwill\b", s_clean, re.IGNORECASE):
+                bullets.append(s_clean)
+            if len(bullets) >= 6:
+                break
 
-    # 去重 + 控制长度
-    out = []
+    # 去重保持顺序
     seen = set()
+    out = []
     for b in bullets:
-        b = re.sub(r"\s+", " ", b).strip()
-        if b and b not in seen:
-            seen.add(b)
+        if b.lower() not in seen:
+            seen.add(b.lower())
             out.append(b)
+
     return out
 
 # -----------------------------
@@ -389,6 +456,9 @@ def analyze_jd_text(jd_text: str) -> Dict:
     sections = _detect_sections(jd_text)
 
     company = extract_company_from_text(jd_text)
+    if not company:
+        company = _extract_company(jd_text)  # 你原来的兜底
+
     seniority = _extract_seniority(jd_text)
     job_title = _infer_job_title(jd_text, company, seniority)
 
