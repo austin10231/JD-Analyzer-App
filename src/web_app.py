@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, jsonify
-from run_from_url import analyze_job_from_url
+#from run_from_url import analyze_job_from_url
 from run import analyze_jd
 
 app = Flask(__name__, template_folder="../templates")
@@ -21,12 +21,11 @@ def analyze():
             return jsonify(result)
 
         # mode == "url" (best-effort)
-        job_url = (request.form.get("job_url") or "").strip()
-        if not job_url:
-            return jsonify({"error": "URL is required in URL mode."}), 400
+        # URL mode disabled on hosted demo (fast deploy)
+            return jsonify({
+                "error": "URL mode is disabled on the hosted demo. Please paste JD text instead."
+            }), 400
 
-        result = analyze_job_from_url(job_url)
-        return jsonify(result)
 
     except Exception as e:
         # URL模式失败很常见（LinkedIn/公司反爬），给明确提示
