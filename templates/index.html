@@ -166,67 +166,59 @@
   </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const form = document.getElementById("jobForm");
-      const result = document.getElementById("result");
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("jobForm");
+  const result = document.getElementById("result");
 
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        
-        result.style.display = "block";
-        result.innerHTML = "<em>Analyzing job description...</em>";
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();   // ⭐ 防止页面跳转（必须）
 
-        const formData = new FormData(form);
-        const response = await fetch("/analyze", {
-          method: "POST",
-          body: formData
-        });
+    result.style.display = "block";
+    result.innerHTML = "<em>Analyzing job description...</em>";
 
-        if (!response.ok) {
-          result.textContent = "Error analyzing job description.";
-          return;
-        }
+    const formData = new FormData(form);
 
-        const data = await response.json();
-        renderResult(data);
+    try {
+      const response = await fetch("/analyze", {
+        method: "POST",
+        body: formData
       });
-    });
-      function renderResult(data) {
-        document.getElementById("result").style.display = "block";
-      
-        document.getElementById("company").textContent =
-          data.company || "N/A";
-      
-        document.getElementById("job_title").textContent =
-          data.job_title || "N/A";
-      
-        document.getElementById("seniority").textContent =
-          data.seniority || "N/A";
-      
-        document.getElementById("degree").textContent =
-          (data.degree_requirement || []).join(", ") || "N/A";
-      
-        renderTags("required_skills", data.required_skills);
-        renderTags("preferred_skills", data.preferred_skills);
-      }
-      
-      function renderTags(elementId, skills) {
-        const container = document.getElementById(elementId);
-        container.innerHTML = "";
-      
-        if (!skills || skills.length === 0) {
-          container.textContent = "None detected";
-          return;
-        }
-      
-        skills.forEach(skill => {
-          const tag = document.createElement("span");
-          tag.className = "tag";
-          tag.textContent = skill;
-          container.appendChild(tag);
-        });
+
+      if (!response.ok) {
+        throw new Error("Server error");
       }
 
-  </script>
+      const data = await response.json();
+      renderResult(data);
+
+    } catch (err) {
+      result.innerHTML = "<b>Error analyzing job description.</b>";
+      console.error(err);
+    }
+  });
+});
+
+function renderResult(data) {
+  document.getElementById("result").innerHTML = `
+    <h3>Analysis Result</h3>
+
+    <p><b>Job Title:</b> ${data.job_title || "N/A"}</p>
+    <p><b>Company:</b> ${data.company || "N/A"}</p>
+    <p><b>Seniority:</b> ${data.seniority || "N/A"}</p>
+    <p><b>Degree Requirement:</b> ${(data.degree_requirement || []).join(", ") || "N/A"}</p>
+
+    <h4>Required Skills</h4>
+    <div class="tags">
+      ${(data.required_skills || []).map(s => `<span class="tag">${s}</span>`).join("") || "None"}
+    </div>
+
+    <h4>Preferred Skills</h4>
+    <div class="tags">
+      ${(data.preferred_skills || []).map(s => `<span class="tag">${s}</span>`).join("") || "None"}
+    </div>
+  `;
+}
+</script>
+
 </body>
 </html>
