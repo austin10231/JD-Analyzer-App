@@ -1,45 +1,27 @@
+# src/web_app.py
 from flask import Flask, request, render_template, jsonify
-from run_from_url import analyze_job_from_url
 from run import analyze_jd
 
 app = Flask(__name__, template_folder="../templates")
-
 
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
 
-
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    data = request.get_json()
+    mode = (request.form.get("mode") or "text").strip().lower()
 
-    mode = data.get("mode")
-
-    try:
-        if mode == "url":
-            url = data.get("job_url", "").strip()
-            if not url:
-                return jsonify({"error": "URL is required"}), 400
-
-            result = analyze_job_from_url(url)
-
-        elif mode == "text":
-            text = data.get("job_text", "").strip()
-            if not text:
-                return jsonify({"error": "Job text is required"}), 400
-
-            result = analyze_jd(text)
-
-        else:
-            return jsonify({"error": "Invalid mode"}), 400
-
+    # 只抓 text（你当前目标）
+    if mode == "text":
+        jd_text = (request.form.get("jd_text") or "").strip()
+        if not jd_text:
+            return jsonify({"error": "JD text is required"}), 400
+        result = analyze_jd(jd_text)
         return jsonify(result)
 
-    except Exception as e:
-        print("ERROR:", e)
-        return jsonify({"error": "Error analyzing job description"}), 500
-
+    # URL：先留着占位，不影响你现在交付 text 成果
+    return jsonify({"error": "URL mode not enabled yet. Please use Text mode."}), 400
 
 if __name__ == "__main__":
     app.run(debug=True)
