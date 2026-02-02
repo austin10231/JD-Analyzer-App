@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template, jsonify
 from run_from_url import analyze_job_from_url
+from run import analyze_jd
 
 app = Flask(__name__, template_folder="../templates")
 
@@ -11,18 +12,33 @@ def index():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    # 前端 form 里 input 的 name="job_url"
-    url = request.form.get("job_url", "").strip()
+    data = request.get_json()
 
-    if not url:
-        return jsonify({"error": "URL is required"}), 400
+    mode = data.get("mode")
 
     try:
-        result = analyze_job_from_url(url)
-        return jsonify(result)   # ⭐ 关键：必须 jsonify
+        if mode == "url":
+            url = data.get("job_url", "").strip()
+            if not url:
+                return jsonify({"error": "URL is required"}), 400
+
+            result = analyze_job_from_url(url)
+
+        elif mode == "text":
+            text = data.get("job_text", "").strip()
+            if not text:
+                return jsonify({"error": "Job text is required"}), 400
+
+            result = analyze_jd(text)
+
+        else:
+            return jsonify({"error": "Invalid mode"}), 400
+
+        return jsonify(result)
+
     except Exception as e:
-        # 防止前端永远卡 loading
-        return jsonify({"error": str(e)}), 500
+        print("ERROR:", e)
+        return jsonify({"error": "Error analyzing job description"}), 500
 
 
 if __name__ == "__main__":
