@@ -10,5 +10,5 @@ Built with Flask and deployed on Render. Paste JD text to get results (URL mode 
 
 [![Live Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](https://jd-analyzer-app.onrender.com)
 
-[![Demo GIF](assets/demo.gif)](https://jd-analyzer-app.onrender.com)
+[![Demo GIF](assets/demo17.gif)](https://jd-analyzer-app.onrender.com)
 
