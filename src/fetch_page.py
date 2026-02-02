@@ -28,7 +28,7 @@ def fetch_rendered_html(url: str, headless: bool = False) -> str:
 if __name__ == "__main__":
     test_url = "https://www.linkedin.com/jobs/view/4348163604"
 
-    html = fetch_rendered_html(test_url, headless=False)
+    html = fetch_rendered_html(url)
     info = extract_job_page_inputs(html)
 
     print("JOB TITLE:", info["job_title"])
