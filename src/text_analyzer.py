@@ -448,13 +448,8 @@ def _extract_responsibilities(sections: Dict[str, str]) -> List[str]:
     bullets: List[str] = []
 
     # 识别更多 bullet 形式：- * • · ● ◦ ‣ 以及 1. 1) (1) 1]
-    bullet_pat = re.compile(
-        r"^\s*(?:"
-        r"[-*•·●◦‣]|"                 # unicode / ascii bullets
-        r"\(?\d{1,3}\)?[.)\]]|"        # 1. / 1) / (1) / 1]
-        r"[a-zA-Z][.)\]]"              # a) / A)
-        r")\s+(.*)\s*$"
-    )
+    bullet_pat = re.compile(r"^\s*(?:[•·●▪▫◦‣–—\-*]|\(\d+\)|\d+[.)])\s+(.*)$")
+
 
     # 一些“像标题”的行：不要当作续行拼进去
     header_like = re.compile(
