@@ -90,6 +90,32 @@
       color: #4f46e5;
       font-weight: 500;
     }
+    .card {
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .tag {
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
   </style>
 </head>
 
@@ -116,7 +142,26 @@
 
     <div class="result-box">
       <div class="result-title">Analysis Result</div>
-      <pre id="result">Waiting for input...</pre>
+      <div id="result" style="display:none;">
+        <div class="card">
+          <h3>Job Overview</h3>
+          <p><strong>Company:</strong> <span id="company"></span></p>
+          <p><strong>Job Title:</strong> <span id="job_title"></span></p>
+          <p><strong>Seniority:</strong> <span id="seniority"></span></p>
+          <p><strong>Degree Requirement:</strong> <span id="degree"></span></p>
+        </div>
+      
+        <div class="card">
+          <h3>Required Skills</h3>
+          <div class="tags" id="required_skills"></div>
+        </div>
+      
+        <div class="card">
+          <h3>Preferred Skills</h3>
+          <div class="tags" id="preferred_skills"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -127,7 +172,9 @@
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        result.textContent = "Analyzing job description...";
+        
+        result.style.display = "block";
+        result.innerHTML = "<em>Analyzing job description...</em>";
 
         const formData = new FormData(form);
         const response = await fetch("/analyze", {
@@ -141,9 +188,45 @@
         }
 
         const data = await response.json();
-        result.textContent = JSON.stringify(data, null, 2);
+        renderResult(data);
       });
     });
+      function renderResult(data) {
+        document.getElementById("result").style.display = "block";
+      
+        document.getElementById("company").textContent =
+          data.company || "N/A";
+      
+        document.getElementById("job_title").textContent =
+          data.job_title || "N/A";
+      
+        document.getElementById("seniority").textContent =
+          data.seniority || "N/A";
+      
+        document.getElementById("degree").textContent =
+          (data.degree_requirement || []).join(", ") || "N/A";
+      
+        renderTags("required_skills", data.required_skills);
+        renderTags("preferred_skills", data.preferred_skills);
+      }
+      
+      function renderTags(elementId, skills) {
+        const container = document.getElementById(elementId);
+        container.innerHTML = "";
+      
+        if (!skills || skills.length === 0) {
+          container.textContent = "None detected";
+          return;
+        }
+      
+        skills.forEach(skill => {
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = skill;
+          container.appendChild(tag);
+        });
+      }
+
   </script>
 </body>
 </html>
