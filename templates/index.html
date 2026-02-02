@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>JD Analyzer</title>
-
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -13,169 +13,481 @@
     }
 
     .container {
-      max-width: 800px;
-      margin: 80px auto;
-      background: white;
+      max-width: 980px;
+      margin: 60px auto;
+      background: #fff;
       padding: 40px;
-      border-radius: 12px;
+      border-radius: 14px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     }
 
     h1 {
+      margin: 0;
+      font-size: 34px;
       text-align: center;
-      margin-top: 0;
+      letter-spacing: 0.2px;
     }
 
     .subtitle {
       text-align: center;
       color: #666;
-      margin-bottom: 30px;
+      margin-top: 10px;
+      margin-bottom: 26px;
+      font-size: 16px;
     }
 
-    .mode-switch {
+    .mode-row {
       display: flex;
-      gap: 20px;
-      margin-bottom: 20px;
+      gap: 18px;
+      align-items: center;
+      justify-content: center;
+      margin: 14px 0 18px;
+      color: #333;
+      font-size: 15px;
     }
 
-    textarea, input[type="text"] {
-      width: 100%;
-      padding: 14px;
-      font-size: 14px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
+    .mode-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      margin-top: 10px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 14px 16px;
+      font-size: 15px;
+      border-radius: 10px;
+      border: 1px solid #d0d7de;
+      outline: none;
+    }
+    input[type="text"]:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
     }
 
     textarea {
-      min-height: 160px;
+      width: 100%;
+      min-height: 220px;
+      resize: vertical;
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      border-radius: 10px;
+      border: 1px solid #d0d7de;
+      outline: none;
+      margin-top: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      white-space: pre-wrap;
+    }
+    textarea:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
     }
 
     button {
-      margin-top: 20px;
       background: #4f46e5;
-      color: white;
+      color: #fff;
       border: none;
-      border-radius: 8px;
-      padding: 12px 20px;
+      border-radius: 10px;
+      padding: 0 20px;
       font-size: 15px;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      min-height: 46px;
+    }
+    button:hover { background: #4338ca; }
+    button:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .hint {
+      margin-top: 10px;
+      color: #666;
+      font-size: 13px;
     }
 
-    button:hover {
-      background: #4338ca;
+    .result-box {
+      margin-top: 34px;
     }
 
-    .result {
-      margin-top: 40px;
+    .result-title {
+      font-weight: 700;
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      margin-top: 6px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .status.loading { color: #4f46e5; }
+    .status.error { color: #b91c1c; }
+    .status.ok { color: #065f46; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .card {
+      background: #f9fafb;
+      border: 1px solid #eef2f7;
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+    }
+
+    .kv p {
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
     }
 
     .tag {
-      display: inline-block;
       background: #e0e7ff;
       color: #3730a3;
       padding: 6px 12px;
       border-radius: 999px;
-      margin: 4px;
       font-size: 13px;
+      border: 1px solid rgba(55,48,163,0.12);
     }
 
-    .loading {
-      color: #4f46e5;
-      font-weight: 500;
+    ul.clean {
+      margin: 8px 0 0 18px;
+      padding: 0;
+      color: #111827;
+      font-size: 14px;
+      line-height: 1.55;
     }
+
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 14px;
+      border-radius: 12px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .hide { display: none; }
   </style>
 </head>
 
 <body>
-<div class="container">
-  <h1>Job Description Analyzer</h1>
-  <div class="subtitle">Analyze via URL or paste JD text directly</div>
+  <div class="container">
+    <h1>Job Description Analyzer</h1>
+    <div class="subtitle">Analyze via URL (best-effort) or paste JD text directly (recommended)</div>
 
-  <!-- 模式选择 -->
-  <div class="mode-switch">
-    <label>
-      <input type="radio" name="mode" value="url" checked />
-      URL
-    </label>
-    <label>
-      <input type="radio" name="mode" value="text" />
-      Text
-    </label>
+    <form id="jobForm" action="javascript:void(0);">
+      <div class="mode-row">
+        <label><input type="radio" name="mode_radio" value="url" /> URL</label>
+        <label><input type="radio" name="mode_radio" value="text" checked /> Text</label>
+      </div>
+
+      <input type="hidden" name="mode" id="mode" value="text" />
+
+      <!-- URL mode -->
+      <div id="urlBlock" class="hide">
+        <div class="input-group">
+          <input
+            type="text"
+            name="job_url"
+            id="job_url"
+            placeholder="Paste a job posting URL (Greenhouse / company site works best)"
+          />
+          <button type="submit" id="analyzeBtnUrl">🔍 Analyze</button>
+        </div>
+        <div class="hint">
+          Note: Some sites (e.g., LinkedIn) may block automated access. If URL fails, use Text mode.
+        </div>
+      </div>
+
+      <!-- Text mode -->
+      <div id="textBlock">
+        <textarea
+          name="jd_text"
+          id="jd_text"
+          placeholder="Paste the full JD text here..."
+        ></textarea>
+        <div class="input-group" style="margin-top: 12px;">
+          <button type="submit" id="analyzeBtnText">🔍 Analyze</button>
+        </div>
+        <div class="hint">
+          Text mode is the most reliable and will produce the most complete structured result.
+        </div>
+      </div>
+    </form>
+
+    <div class="result-box">
+      <div class="result-title">Analysis Result</div>
+      <div id="status" class="status">Ready.</div>
+
+      <div id="resultGrid" class="grid hide">
+        <div class="card">
+          <h3>Job Overview</h3>
+          <div class="kv">
+            <p><strong>Company:</strong> <span id="company">—</span></p>
+            <p><strong>Job Title:</strong> <span id="job_title">—</span></p>
+            <p><strong>Seniority:</strong> <span id="seniority">—</span></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Education</h3>
+          <div class="kv">
+            <p><strong>Required:</strong> <span id="edu_required">—</span></p>
+            <p><strong>Preferred:</strong> <span id="edu_preferred">—</span></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Fields</h3>
+          <div class="tags" id="fields"></div>
+        </div>
+
+        <div class="card">
+          <h3>Responsibilities</h3>
+          <ul class="clean" id="responsibilities"></ul>
+        </div>
+
+        <div class="card">
+          <h3>Required Skills</h3>
+          <div class="tags" id="required_skills"></div>
+        </div>
+
+        <div class="card">
+          <h3>Preferred Skills</h3>
+          <div class="tags" id="preferred_skills"></div>
+        </div>
+
+        <div class="card">
+          <h3>Skill Buckets</h3>
+          <div class="kv" id="skill_buckets"></div>
+        </div>
+
+        <div class="card">
+          <h3>Raw JSON</h3>
+          <pre id="raw_json"></pre>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- URL 输入 -->
-  <div id="urlBox">
-    <input id="jobUrl" type="text" placeholder="Paste job posting URL" />
-  </div>
+  <script>
+    const modeHidden = document.getElementById("mode");
+    const urlBlock = document.getElementById("urlBlock");
+    const textBlock = document.getElementById("textBlock");
+    const statusEl = document.getElementById("status");
+    const resultGrid = document.getElementById("resultGrid");
 
-  <!-- Text 输入 -->
-  <div id="textBox" style="display:none;">
-    <textarea id="jobText" placeholder="Paste job description text here..."></textarea>
-  </div>
+    const radios = document.querySelectorAll('input[name="mode_radio"]');
+    radios.forEach(r => r.addEventListener("change", () => {
+      const mode = document.querySelector('input[name="mode_radio"]:checked').value;
+      modeHidden.value = mode;
 
-  <button onclick="analyze()">🔍 Analyze</button>
+      if (mode === "url") {
+        urlBlock.classList.remove("hide");
+        textBlock.classList.add("hide");
+      } else {
+        textBlock.classList.remove("hide");
+        urlBlock.classList.add("hide");
+      }
 
-  <!-- 结果 -->
-  <div class="result" id="result"></div>
-</div>
+      // reset status/results UI when switching
+      statusEl.className = "status";
+      statusEl.textContent = "Ready.";
+      resultGrid.classList.add("hide");
+    }));
 
-<script>
-function analyze() {
-  const mode = document.querySelector('input[name="mode"]:checked').value;
-  const resultDiv = document.getElementById("result");
-
-  resultDiv.innerHTML = "<div class='loading'>Analyzing...</div>";
-
-  let payload = { mode };
-
-  if (mode === "url") {
-    payload.job_url = document.getElementById("jobUrl").value;
-  } else {
-    payload.job_text = document.getElementById("jobText").value;
-  }
-
-  fetch("/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) {
-      resultDiv.innerHTML = "<b>Error:</b> " + data.error;
-      return;
+    function setStatus(text, type) {
+      statusEl.textContent = text;
+      statusEl.className = "status " + (type || "");
     }
 
-    resultDiv.innerHTML = `
-      <h3>${data.job_title || ""}</h3>
-      <p><b>Company:</b> ${data.company || ""}</p>
-      <p><b>Seniority:</b> ${data.seniority || ""}</p>
-      <p><b>Degree:</b> ${(data.degree_requirement || []).join(", ")}</p>
+    function clearChildren(el) {
+      while (el.firstChild) el.removeChild(el.firstChild);
+    }
 
-      <h4>Required Skills</h4>
-      ${(data.required_skills || []).map(s => `<span class="tag">${s}</span>`).join("")}
+    function renderTags(el, items) {
+      clearChildren(el);
+      if (!items || items.length === 0) {
+        const span = document.createElement("span");
+        span.textContent = "None";
+        el.appendChild(span);
+        return;
+      }
+      items.forEach(x => {
+        const t = document.createElement("span");
+        t.className = "tag";
+        t.textContent = x;
+        el.appendChild(t);
+      });
+    }
 
-      <h4>Preferred Skills</h4>
-      ${(data.preferred_skills || []).length
-        ? data.preferred_skills.map(s => `<span class="tag">${s}</span>`).join("")
-        : "<p>None</p>"}
-    `;
-  })
-  .catch(() => {
-    resultDiv.innerHTML = "<b>Error analyzing job description.</b>";
-  });
-}
+    function renderList(el, items) {
+      clearChildren(el);
+      if (!items || items.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "None";
+        el.appendChild(li);
+        return;
+      }
+      items.forEach(x => {
+        const li = document.createElement("li");
+        li.textContent = x;
+        el.appendChild(li);
+      });
+    }
 
-// 切换输入框
-document.querySelectorAll('input[name="mode"]').forEach(radio => {
-  radio.addEventListener("change", () => {
-    document.getElementById("urlBox").style.display =
-      radio.value === "url" && radio.checked ? "block" : "none";
+    function textOrDash(v) {
+      if (v === null || v === undefined) return "—";
+      const s = String(v).trim();
+      return s ? s : "—";
+    }
 
-    document.getElementById("textBox").style.display =
-      radio.value === "text" && radio.checked ? "block" : "none";
-  });
-});
-</script>
+    // 兼容：URL pipeline / Text pipeline 的不同字段名
+    function normalizeResult(data) {
+      // Text analyzer schema:
+      // company, job_title, seniority, education{required,preferred}, fields, responsibilities,
+      // required_skills, preferred_skills, skill_buckets
+      //
+      // URL analyzer schema（你之前run_from_url的）：
+      // job_title, company, seniority, degree_requirement, fields, required_skills, preferred_skills
+      const out = { ...data };
+
+      // education 兜底
+      if (!out.education) {
+        const deg = out.degree_requirement || out.degree || [];
+        const required = Array.isArray(deg) ? deg : [deg].filter(Boolean);
+        out.education = { required, preferred: [] };
+      } else {
+        out.education.required = out.education.required || [];
+        out.education.preferred = out.education.preferred || [];
+      }
+
+      out.fields = out.fields || [];
+      out.responsibilities = out.responsibilities || [];
+
+      out.required_skills = out.required_skills || [];
+      out.preferred_skills = out.preferred_skills || [];
+
+      out.skill_buckets = out.skill_buckets || {};
+
+      out.company = out.company || "Unknown";
+      out.job_title = out.job_title || out.job_title || "Unknown";
+      out.seniority = out.seniority || "Unknown";
+      return out;
+    }
+
+    function renderResult(data) {
+      const d = normalizeResult(data);
+
+      document.getElementById("company").textContent = textOrDash(d.company);
+      document.getElementById("job_title").textContent = textOrDash(d.job_title);
+      document.getElementById("seniority").textContent = textOrDash(d.seniority);
+
+      document.getElementById("edu_required").textContent =
+        d.education.required.length ? d.education.required.join(", ") : "None";
+      document.getElementById("edu_preferred").textContent =
+        d.education.preferred.length ? d.education.preferred.join(", ") : "None";
+
+      renderTags(document.getElementById("fields"), d.fields);
+      renderList(document.getElementById("responsibilities"), d.responsibilities);
+      renderTags(document.getElementById("required_skills"), d.required_skills);
+      renderTags(document.getElementById("preferred_skills"), d.preferred_skills);
+
+      // buckets
+      const bucketsEl = document.getElementById("skill_buckets");
+      bucketsEl.innerHTML = "";
+      const buckets = d.skill_buckets || {};
+      const keys = Object.keys(buckets);
+      if (keys.length === 0) {
+        bucketsEl.innerHTML = "<p>None</p>";
+      } else {
+        keys.forEach(k => {
+          const arr = buckets[k] || [];
+          const p = document.createElement("p");
+          const label = document.createElement("strong");
+          label.textContent = k + ": ";
+          p.appendChild(label);
+          p.appendChild(document.createTextNode(arr.length ? arr.join(", ") : "None"));
+          bucketsEl.appendChild(p);
+        });
+      }
+
+      document.getElementById("raw_json").textContent = JSON.stringify(d, null, 2);
+
+      resultGrid.classList.remove("hide");
+    }
+
+    document.getElementById("jobForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const mode = modeHidden.value;
+
+      const fd = new FormData();
+      fd.append("mode", mode);
+
+      if (mode === "url") {
+        const url = document.getElementById("job_url").value.trim();
+        if (!url) {
+          setStatus("Please paste a URL first.", "error");
+          return;
+        }
+        fd.append("job_url", url);
+      } else {
+        const text = document.getElementById("jd_text").value.trim();
+        if (!text) {
+          setStatus("Please paste JD text first.", "error");
+          return;
+        }
+        fd.append("jd_text", text);
+      }
+
+      setStatus("Analyzing...", "loading");
+      resultGrid.classList.add("hide");
+
+      try {
+        const res = await fetch("/analyze", { method: "POST", body: fd });
+        const data = await res.json();
+
+        if (!res.ok) {
+          const msg = data && data.error ? data.error : "Error analyzing job description.";
+          setStatus(msg, "error");
+          return;
+        }
+
+        setStatus("Done.", "ok");
+        renderResult(data);
+      } catch (err) {
+        setStatus("Network/Server error. Check terminal logs.", "error");
+      }
+    });
+  </script>
 </body>
 </html>
