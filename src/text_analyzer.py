@@ -10,53 +10,88 @@ _STOP_TITLES = {
     "preferred technical and professional experience", "topics include", "topics include but are not limited to",
 }
 
-def _clean_company_candidate(s: str) -> str:
-    s = re.sub(r"\s+", " ", (s or "").strip())
-    s = re.sub(r"^(about the job|introduction|company|organization)\s*[:\-]?\s*", "", s, flags=re.I)
-    if len(s.split()) > 6:
-        return ""
-    return s
+import re
+
+# 这些词很容易被误判成“公司”
+_BAD_COMPANY = {
+    "about", "about the job", "job", "job overview", "company overview",
+    "introduction", "overview", "responsibilities", "what you'll do",
+    "what you will do", "requirements", "qualifications", "preferred",
+    "education", "skills", "role", "your role", "the role",
+    "electrical", "software", "engineering", "computer", "science",
+    "data", "analytics", "research"
+}
 
 def extract_company_from_text(jd_text: str) -> str:
-    text = _normalize(jd_text)
+    """
+    Best-effort extract company name from pasted JD text.
+    Prefer explicit "Company:" lines, then strong textual signals like:
+      - "At Netflix, ..."
+      - "IBM Research ..."
+      - "KLA is a global leader ..."
+    """
+    text = jd_text or ""
+    t = re.sub(r"\r\n?", "\n", text).strip()
+    if not t:
+        return ""
 
-    # 常见标题词，避免被误判为公司
-    BAD_HEADINGS = {
-        "about the job", "introduction", "your role", "your role and responsibilities",
-        "responsibilities", "what you'll do", "what you will do", "requirements",
-        "preferred qualifications", "preferred", "education"
-    }
-
-    # 1) At <Company>,
-    m = re.search(r"\bAt\s+([A-Z][A-Za-z0-9&.\-]+(?:\s+[A-Z][A-Za-z0-9&.\-]+){0,4})\s*,", text)
+    # 1) Explicit "Company: X"
+    m = re.search(r"(?im)^\s*company\s*[:\-]\s*(.+?)\s*$", t)
     if m:
-        c = m.group(1).strip()
-        if c.lower() not in BAD_HEADINGS:
-            return c
+        cand = m.group(1).strip()
+        cand = re.split(r"\s{2,}|\s*\|\s*|\s*•\s*", cand)[0].strip()
+        if cand and cand.lower() not in _BAD_COMPANY:
+            return cand
 
-    # 2) <Company> Research / <Company> Labs / <Company> AI
-    m = re.search(r"\b([A-Z][A-Za-z0-9&.\-]+)\s+(Research|Labs|Lab|AI|Data|Engineering|Semiconductor)\b", text)
+    # 2) "At {Company}, ..."  (Netflix / Google / Apple)
+    m = re.search(r"(?im)^\s*(?:at|within)\s+([A-Z][A-Za-z0-9&.\-]{1,40})\b", t)
     if m:
-        c = m.group(1).strip()
-        if c.lower() not in BAD_HEADINGS:
-            return c
+        cand = m.group(1).strip()
+        if cand and cand.lower() not in _BAD_COMPANY:
+            return cand
 
-    # 3) fallback：从前 15 行里找“像公司名”的行（且过滤标题）
-    lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
-    head = lines[:15]
+    # 3) Acronym company at beginning: "KLA is ...", "IBM Research ..."
+    #    - first non-empty line
+    first_lines = [ln.strip() for ln in t.split("\n") if ln.strip()][:6]
+    head = " ".join(first_lines)
 
-    for ln in head:
-        low = ln.lower().strip(": -")
-        if low in BAD_HEADINGS:
+    # 3a) "KLA is a ..." / "IBM is ..."
+    m = re.search(r"^\s*([A-Z][A-Z0-9&.\-]{1,15})\s+is\b", head)
+    if m:
+        cand = m.group(1).strip()
+        if cand.lower() not in _BAD_COMPANY:
+            return cand
+
+    # 3b) "IBM Research ..." -> IBM
+    m = re.search(r"^\s*(IBM)\s+Research\b", head, re.IGNORECASE)
+    if m:
+        return "IBM"
+
+    # 3c) "{Company} is a global leader ..." where Company can be TitleCase too (e.g., "OpenAI is ...")
+    m = re.search(r"^\s*([A-Z][A-Za-z0-9&.\-]{1,40})\s+is\s+(?:a|an|the)\b", head)
+    if m:
+        cand = m.group(1).strip()
+        if cand.lower() not in _BAD_COMPANY:
+            return cand
+
+    # 4) Last resort: look for frequent brand-like token (all-caps or TitleCase) that repeats
+    #    Keep it conservative to avoid "Electrical".
+    tokens = re.findall(r"\b[A-Z][A-Za-z0-9&.\-]{2,20}\b", t)
+    freq = {}
+    for w in tokens:
+        lw = w.lower()
+        if lw in _BAD_COMPANY:
             continue
-        # 很短的一行、Title Case，可能是公司/部门名
-        if 2 <= len(ln) <= 40 and re.match(r"^[A-Z][A-Za-z0-9&.\- ]+$", ln):
-            # 避免 "About the job Netflix" 这种组合
-            ln2 = re.sub(r"(?i)^about the job\s+", "", ln).strip()
-            if ln2 and ln2.lower() not in BAD_HEADINGS:
-                return ln2
+        freq[w] = freq.get(w, 0) + 1
+
+    if freq:
+        # pick the most repeated; require at least 2 occurrences to be safe
+        best = max(freq.items(), key=lambda x: x[1])
+        if best[1] >= 2:
+            return best[0]
 
     return ""
+
 
 
 # -----------------------------
@@ -139,19 +174,16 @@ def _detect_sections(jd_text: str) -> Dict[str, str]:
     # 标题模式：尽量覆盖常见JD写法（大小写不敏感）
     SECTION_PATTERNS = {
         "responsibilities": re.compile(
-            r"^(responsibilities|what (you'?ll|you will) do|what you'?ll work on|your role( and responsibilities)?|role and responsibilities|in this role(,)? you will)\s*[:\-]?$",
-            re.IGNORECASE
-        ),
-        "requirements": re.compile(
-            r"^(requirements|required (skills|experience|expertise)|required technical|required technical and professional expertise|basic qualifications)\s*[:\-]?$",
-            re.IGNORECASE
-        ),
-        "preferred": re.compile(
-            r"^(preferred (skills|experience|expertise)|preferred technical|preferred technical and professional experience|preferred qualifications)\s*[:\-]?$",
-            re.IGNORECASE
-        ),
-        "education": re.compile(
-            r"^(education|preferred education|minimum education|qualification|qualifications)\s*[:\-]?$",
+            r"^(?:"
+            r"responsibilities|"
+            r"what\s+(?:you['’]ll|you\s+will)\s+do|"
+            r"what\s+(?:you['’]ll|you\s+will)\s+be\s+doing|"
+            r"what\s+(?:you['’]ll|you\s+will)\s+work\s+on|"
+            r"your\s+role(?:\s+and\s+responsibilities)?|"
+            r"role\s+and\s+responsibilities|"
+            r"in\s+this\s+role,?\s+you\s+will|"
+            r"what\s+we['’]re\s+looking\s+for"
+            r")\s*[:\-–—]?\s*$",
             re.IGNORECASE
         ),
     }
@@ -399,51 +431,87 @@ def _extract_skills(text: str, sections: Dict[str, str]) -> Dict[str, List[str]]
 def _extract_responsibilities(sections: Dict[str, str]) -> List[str]:
     """
     Extract bullet responsibilities.
+    Supports unicode bullets and multiline bullet continuation.
     """
-    # 1) 优先用 responsibilities block
     block = sections.get("responsibilities", "").strip()
 
-    # 2) 如果没有，就用全文里“你将会…”那段做兜底
+    # fallback：没检测到 responsibilities section，就用全文兜底
     if not block:
-        block = sections.get("__all__", "")
+        block = sections.get("__all__", "") or ""
 
-    if not block:
+    if not block.strip():
         return []
 
-    lines = [ln.strip() for ln in block.split("\n") if ln.strip()]
+    # 保留原始换行（不要一上来 strip 掉每行），否则无法做“续行合并”
+    raw_lines = block.splitlines()
 
     bullets: List[str] = []
-    bullet_pat = re.compile(r"^\s*(?:[-*]|(\d+)[\).\]])\s+(.*)$")
 
-    for ln in lines:
+    # 识别更多 bullet 形式：- * • · ● ◦ ‣ 以及 1. 1) (1) 1]
+    bullet_pat = re.compile(
+        r"^\s*(?:"
+        r"[-*•·●◦‣]|"                 # unicode / ascii bullets
+        r"\(?\d{1,3}\)?[.)\]]|"        # 1. / 1) / (1) / 1]
+        r"[a-zA-Z][.)\]]"              # a) / A)
+        r")\s+(.*)\s*$"
+    )
+
+    # 一些“像标题”的行：不要当作续行拼进去
+    header_like = re.compile(
+        r"^\s*(?:about\s+the\s+job|company\s+overview|requirements|preferred|education|qualifications|"
+        r"what\s+(?:you['’]ll|you\s+will)\s+do|responsibilities|your\s+role|"
+        r"required\s+technical|preferred\s+technical|skills)\s*[:\-–—]?\s*$",
+        re.IGNORECASE,
+    )
+
+    current = None
+
+    for ln in raw_lines:
+        if not ln.strip():
+            # 空行：结束续行（但不强制结束 bullet）
+            continue
+
         m = bullet_pat.match(ln)
         if m:
-            item = m.group(2).strip()
+            item = m.group(1).strip()
             if item:
                 bullets.append(item)
+                current = len(bullets) - 1
+            continue
 
-    # 如果没有 bullet，就从句子里抽一些 “will/you will” 句子作为责任描述
-    if not bullets:
-        # 简单句子切分
-        sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", block).strip())
-        for s in sentences:
-            s_clean = s.strip()
-            if not s_clean:
+        # 非 bullet 行：如果前面已经有 bullet，且这一行看起来是“续行”，就拼到上一条 bullet 后面
+        if current is not None:
+            # 满足续行条件：不是新标题、且这行不是明显的 section 头
+            if not header_like.match(ln):
+                # 拼接（用空格连接，避免把句子粘住）
+                bullets[current] = (bullets[current].rstrip() + " " + ln.strip()).strip()
                 continue
-            if re.search(r"\byou will\b|\byou'll\b|\bwill\b", s_clean, re.IGNORECASE):
-                bullets.append(s_clean)
-            if len(bullets) >= 6:
-                break
 
-    # 去重保持顺序
+        # 如果没有 bullet：尝试从句子里抽取职责（you will / build / design 等）
+        # 只在 bullets 为空时做，避免污染已经抽出来的 bullets
+        if not bullets:
+            # 简单句切分
+            sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", block).strip())
+            for s in sentences:
+                s_clean = s.strip()
+                if not s_clean:
+                    continue
+                if re.search(r"\b(you\s+will|you['’]ll|responsible\s+for|design|build|develop|collaborate|implement|maintain|deliver)\b",
+                             s_clean, re.IGNORECASE):
+                    bullets.append(s_clean)
+            break
+
+    # 去重（保持顺序）
     seen = set()
-    out = []
+    dedup = []
     for b in bullets:
-        if b.lower() not in seen:
-            seen.add(b.lower())
-            out.append(b)
+        key = b.lower()
+        if key not in seen:
+            seen.add(key)
+            dedup.append(b)
 
-    return out
+    return dedup
+
 
 # -----------------------------
 # 8) 总控：对外接口
