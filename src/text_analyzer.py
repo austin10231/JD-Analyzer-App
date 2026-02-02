@@ -2,6 +2,57 @@
 import re
 from typing import Dict, List, Tuple
 
+import re
+
+_STOP_TITLES = {
+    "about the job", "introduction", "your role", "your role and responsibilities",
+    "responsibilities", "preferred education", "required technical and professional expertise",
+    "preferred technical and professional experience", "topics include", "topics include but are not limited to",
+}
+
+def _clean_company_candidate(s: str) -> str:
+    s = re.sub(r"\s+", " ", (s or "").strip())
+    s = re.sub(r"^(about the job|introduction|company|organization)\s*[:\-]?\s*", "", s, flags=re.I)
+    if len(s.split()) > 6:
+        return ""
+    return s
+
+def extract_company_from_text(jd_text: str) -> str:
+    text = jd_text or ""
+    lines = [re.sub(r"\s+", " ", x).strip() for x in text.splitlines()]
+    lines = [x for x in lines if x]
+
+    # 1) "at IBM Research"
+    m = re.search(r"\bat\s+([A-Z][A-Za-z0-9&.\- ]{1,60})\b", text)
+    if m:
+        cand = _clean_company_candidate(m.group(1))
+        if cand and cand.lower() not in _STOP_TITLES:
+            return cand
+
+    # 2) 开头句："IBM Research takes ..."
+    first_chunk = " ".join(lines[:3])
+    m2 = re.match(r"^([A-Z][A-Za-z0-9&.\- ]{1,40})\s+(takes|is|are|was|were|has|have)\b", first_chunk)
+    if m2:
+        cand = _clean_company_candidate(m2.group(1))
+        if cand and cand.lower() not in _STOP_TITLES:
+            return cand
+
+    # 3) 回退：前 20 行里找短的“像公司名”的行
+    for x in lines[:20]:
+        xl = x.lower().strip(":")
+        if xl in _STOP_TITLES:
+            continue
+        if any(xl.startswith(t) for t in _STOP_TITLES):
+            continue
+        if "." in x:
+            continue
+        cand = _clean_company_candidate(x)
+        if cand:
+            return cand
+
+    return "Unknown"
+
+
 # -----------------------------
 # 1) 词表：你后面想扩充很容易
 # -----------------------------
@@ -337,7 +388,7 @@ def analyze_jd_text(jd_text: str) -> Dict:
     jd_text = _normalize(jd_text)
     sections = _detect_sections(jd_text)
 
-    company = _extract_company(jd_text)
+    company = extract_company_from_text(jd_text)
     seniority = _extract_seniority(jd_text)
     job_title = _infer_job_title(jd_text, company, seniority)
 
