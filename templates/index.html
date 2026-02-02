@@ -7,7 +7,7 @@
 <body>
   <h2>Job Description Analyzer</h2>
 
-  <form id="jobForm">
+  <form id="jobForm" action="javascript:void(0);">
     <input
       type="text"
       name="job_url"
@@ -21,6 +21,7 @@
   <pre id="result"></pre>
 
   <script>
+  document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("jobForm");
     const result = document.getElementById("result");
 
@@ -34,9 +35,12 @@
         body: formData
       });
 
-      const data = await response.json();
-      result.textContent = JSON.stringify(data, null, 2);
-    });
+    const data = await response.json();
+    result.textContent = JSON.stringify(data, null, 2);
+  });
+});
+</script>
+
   </script>
 </body>
 </html>
