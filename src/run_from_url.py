@@ -8,35 +8,31 @@ from run import analyze_jd   # 你已有的 analyzer（或对应文件名）
 
 
 def analyze_job_from_url(url: str) -> dict:
-    """
-    Full pipeline:
-    URL -> HTML -> (job_title, company, jd_text) -> analyzer -> final JSON
-    """
+    print("[1] Fetching HTML...")
+    html = fetch_rendered_html(url)
 
-    # 1. Fetch rendered HTML
-    html = fetch_rendered_html(url, headless=False)
-
-    # 2. Extract structured inputs from HTML
+    print("[2] Extracting page inputs...")
     page_inputs = extract_job_page_inputs(html)
 
     job_title = page_inputs["job_title"]
     company = page_inputs["company"]
-    jd_text = page_inputs["jd_text"]   # 内部用，不输出
+    jd_text = page_inputs["jd_text"]
 
-    # 3. Run existing JD analyzer
+    print("[3] Running JD analyzer...")
     analysis = analyze_jd(jd_text)
 
-    # 4. Assemble final output (NO jd_text)
+    print("[4] Assembling output...")
     final_output = {
-        "job_title": job_title,
-        "company": company,
-        "seniority": analysis.get("seniority", ""),
-        "degree_requirement": analysis.get("degree_requirement", []),
-        "fields": analysis.get("fields", []),
-        "required_skills": analysis.get("required_skills", []),
-        "preferred_skills": analysis.get("preferred_skills", []),
+    "job_title": job_title,
+    "company": company,
+    "seniority": analysis.get("seniority", ""),
+    "degree_requirement": analysis.get("degree_requirement", []),
+    "fields": analysis.get("fields", []),
+    "required_skills": analysis.get("required_skills", []),
+    "preferred_skills": analysis.get("preferred_skills", []),
     }
 
+    print("FINAL OUTPUT:", final_output)
     return final_output
 
 
