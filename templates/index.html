@@ -371,7 +371,7 @@
           textBox.classList.remove("hidden");
         }
         showResult(false);
-        setStatus("Idle.");
+        
       });
     });
 
@@ -423,6 +423,17 @@
         setStatus("Error analyzing job description.", "err");
       }
     });
+    </script> <!-- 这一行必须在 footer 前面 -->
+
+  <footer>
+    <p>
+      © <span id="year"></span> Mutian He. All rights reserved. ·
+      <a href="mailto:mhe3@scu.edu">mhe3@scu.edu</a>
+    </p>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 </body>
 </html>
