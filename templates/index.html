@@ -193,6 +193,21 @@
       line-height: 1.5;
       margin: 0;
     }
+    
+    #responsibilities li {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+    .clean{
+      padding-left: 18px;   /* 让 bullet 看起来正常 */
+    }
+    .clean li{
+      margin: 6px 0;
+    }
+
+
 
     .hide { display: none; }
   </style>
@@ -288,11 +303,6 @@
         <div class="card">
           <h3>Skill Buckets</h3>
           <div class="kv" id="skill_buckets"></div>
-        </div>
-
-        <div class="card">
-          <h3>Raw JSON</h3>
-          <pre id="raw_json"></pre>
         </div>
       </div>
     </div>
@@ -433,14 +443,20 @@
           const arr = buckets[k] || [];
           const p = document.createElement("p");
           const label = document.createElement("strong");
-          label.textContent = k + ": ";
+          const LABELS = {
+            ai_ml: "AI/ML",
+            cloud: "CLOUD",
+            data_systems: "DATA SYSTEMS",
+            frameworks: "FRAMEWORKS",
+            languages: "LANGUAGES"
+          };
+          label.textContent = (LABELS[k] || k.toUpperCase()) + ": ";
+
           p.appendChild(label);
           p.appendChild(document.createTextNode(arr.length ? arr.join(", ") : "None"));
           bucketsEl.appendChild(p);
         });
       }
-
-      document.getElementById("raw_json").textContent = JSON.stringify(d, null, 2);
 
       resultGrid.classList.remove("hide");
     }
